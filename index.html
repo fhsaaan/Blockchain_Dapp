@@ -1,0 +1,740 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoteChain | Decentralized Voting</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js"></script>
+
+<style>
+:root {
+  --bg: #090b14;
+  --panel: #121625;
+  --border: #242c42;
+  --purple: #9775ff;
+  --text: #f5f3ff;
+  --muted: #929bb2;
+  --green: #39d9a5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 50% -20%, #35205c 0%, transparent 48%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+button { font: inherit; }
+
+.navbar {
+  height: 76px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 max(calc((100% - 1120px)/2), 5%);
+  background: rgba(9,11,20,.75);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.brand span { color: var(--purple); }
+
+.network {
+  color: var(--green);
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.connect {
+  padding: 12px 18px;
+  border-radius: 9px;
+  background: var(--purple);
+  color: white;
+  font-weight: 700;
+}
+
+.connect:hover, .vote-btn:hover {
+  background: #8058ed;
+  transform: translateY(-1px);
+}
+
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 45px 24px 70px;
+}
+
+.hero {
+  text-align: center;
+  padding: 45px 10px 35px;
+}
+
+.eyebrow {
+  color: var(--purple);
+  font-size: 12px;
+  letter-spacing: 3px;
+  font-weight: 800;
+}
+
+.hero h1 {
+  font-size: clamp(36px, 6vw, 65px);
+  letter-spacing: -3px;
+  margin: 15px 0;
+  line-height: 1.1;
+}
+
+.gradient {
+  background: linear-gradient(90deg,#a78bfa,#60a5fa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero p {
+  color: var(--muted);
+  max-width: 550px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 16px;
+  margin: 25px 0 45px;
+}
+
+.stat {
+  background: rgba(18,22,37,.9);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.stat small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stat h2 {
+  margin: 10px 0 0;
+  font-size: 29px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.section-head h2 { font-size: 21px; }
+
+.live {
+  color: var(--green);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+
+.candidates {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 18px;
+}
+
+.candidate {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  transition: .2s;
+  overflow: hidden;
+}
+
+.candidate:hover {
+  border-color: #8b6af0;
+  transform: translateY(-4px);
+}
+
+.avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.a1 { background: #302253; color: #c4a7ff; }
+.a2 { background: #173c44; color: #71e5d1; }
+.a3 { background: #392c21; color: #ffc98c; }
+
+.candidate h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+
+.candidate .desc {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 22px;
+}
+
+.vote-count {
+  color: #c6b5ff;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.vote-label {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 3px 0 18px;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 20px;
+  background: #252b40;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg,#8056e8,#63a5ff);
+  border-radius: 20px;
+  transition: width .5s;
+}
+
+.vote-btn {
+  width: 100%;
+  background: #815de9;
+  color: white;
+  padding: 12px;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.vote-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.results {
+  margin-top: 35px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 16px;
+}
+
+.results h2 { margin-top: 0; }
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  color: #c9cde0;
+  font-size: 13px;
+  margin: 20px 0 9px;
+}
+
+.result-track {
+  height: 9px;
+  border-radius: 20px;
+  background: #252b40;
+  overflow: hidden;
+}
+
+.result-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg,#815de9,#5aafff);
+  transition: width .6s;
+}
+
+.status {
+  border: 1px solid var(--border);
+  background: #111827;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.status.success { color: var(--green); }
+.status.error { color: #ff8585; }
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 25px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#refreshBtn {
+  background: transparent;
+  color: #bca8ff;
+  border: 1px solid var(--border);
+  padding: 9px 13px;
+  border-radius: 8px;
+}
+
+@media(max-width:700px) {
+  .candidates { grid-template-columns: 1fr; }
+  .stats { gap: 8px; }
+  .stat { padding: 13px; }
+  .stat h2 { font-size: 22px; }
+  .navbar { padding: 0 15px; }
+  .container { padding: 25px 15px 50px; }
+  .hero { padding-top: 35px; }
+  .hero h1 { letter-spacing: -1.5px; }
+}
+</style>
+</head>
+
+<body>
+
+<nav class="navbar">
+  <div class="brand">◈ Vote<span>Chain</span>
+    <span class="network">● SEPOLIA</span>
+  </div>
+  <button class="connect" id="connectBtn" onclick="connectWallet()">
+    Connect Wallet
+  </button>
+</nav>
+
+<main class="container">
+
+  <section class="hero">
+    <div class="eyebrow">DECENTRALIZED GOVERNANCE</div>
+    <h1>Your Voice.<br><span class="gradient">Your Vote.</span></h1>
+    <p>
+      A transparent voting experience powered by Ethereum.
+      Every vote is recorded on-chain and verifiable by everyone.
+    </p>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <small>Total Votes</small>
+      <h2 id="totalVotes">--</h2>
+    </div>
+    <div class="stat">
+      <small>Candidates</small>
+      <h2 id="candidateCount">3</h2>
+    </div>
+    <div class="stat">
+      <small>Your Status</small>
+      <h2 id="myStatus" style="font-size:19px">Not connected</h2>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Choose your candidate</h2>
+      <span class="live">● LIVE RESULTS</span>
+    </div>
+
+    <div class="candidates" id="candidates">
+      <article class="candidate">
+        <div class="avatar a1">AM</div>
+        <h3>Alex Morgan</h3>
+        <p class="desc">Innovation & Technology</p>
+        <div class="vote-count">--</div>
+        <div class="vote-label">VOTES</div>
+        <div class="bar"><div class="fill"></div></div>
+        <button class="vote-btn" disabled>Connect wallet first</button>
+      </article>
+      <article class="candidate">
+        <div class="avatar a2">SC</div>
+        <h3>Sarah Chen</h3>
+        <p class="desc">Community & Sustainability</p>
+        <div class="vote-count">--</div>
+        <div class="vote-label">VOTES</div>
+        <div class="bar"><div class="fill"></div></div>
+        <button class="vote-btn" disabled>Connect wallet first</button>
+      </article>
+      <article class="candidate">
+        <div class="avatar a3">JL</div>
+        <h3>Jordan Lee</h3>
+        <p class="desc">Education & Research</p>
+        <div class="vote-count">--</div>
+        <div class="vote-label">VOTES</div>
+        <div class="bar"><div class="fill"></div></div>
+        <button class="vote-btn" disabled>Connect wallet first</button>
+      </article>
+    </div>
+  </section>
+
+  <section class="results">
+    <div class="section-head">
+      <h2>Election Overview</h2>
+      <button id="refreshBtn" onclick="loadData()">↻ Refresh</button>
+    </div>
+    <div id="resultBars">
+      <p style="color:#929bb2">Connect wallet to retrieve blockchain results.</p>
+    </div>
+  </section>
+
+  <div class="status" id="status">
+    ● Waiting for wallet connection...
+  </div>
+
+  <p style="text-align:center;color:#68738d;font-size:11px;margin-top:25px">
+    All voting activity is publicly verifiable on Ethereum Sepolia.
+  </p>
+
+</main>
+
+<footer class="footer">
+  VoteChain © 2026 · Powered by Ethereum Blockchain
+</footer>
+
+<script>
+const CONTRACT_ADDRESS = "0x7bbD86AfC20FE20302258f1649CabB11Dc1d89ed";
+
+const ABI = [
+  "function vote(uint256 candidateId) external",
+  "function getCandidate(uint256) view returns (uint256,string,string,uint256)",
+  "function getCandidateCount() view returns (uint256)",
+  "function getResults() view returns (uint256[])",
+  "function getVotingStatus(address) view returns (bool)",
+  "function totalVotes() view returns (uint256)",
+  "event VoteCast(address indexed voter,uint256 indexed candidateId,uint256 timestamp)"
+];
+
+const TARGET_CHAIN = "0xaa36a7";
+
+const styles = [
+  { initials: "AM", avatar: "a1" },
+  { initials: "SC", avatar: "a2" },
+  { initials: "JL", avatar: "a3" }
+];
+
+let provider;
+let signer;
+let contract;
+let account;
+let voted = false;
+let candidates = [];
+let isVoting = false;
+
+const $ = id => document.getElementById(id);
+
+function setStatus(message, type = "") {
+  $("status").className = "status " + type;
+  $("status").textContent = message;
+}
+
+async function ensureSepolia() {
+  let chain = await window.ethereum.request({
+    method: "eth_chainId"
+  });
+
+  if (chain !== TARGET_CHAIN) {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: TARGET_CHAIN }]
+      });
+    } catch (error) {
+      if (error.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: TARGET_CHAIN,
+            chainName: "Ethereum Sepolia",
+            nativeCurrency: {
+              name: "Sepolia ETH",
+              symbol: "ETH",
+              decimals: 18
+            },
+            rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"],
+            blockExplorerUrls: ["https://sepolia.etherscan.io"]
+          }]
+        });
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+async function connectWallet() {
+  try {
+    if (!window.ethereum) {
+      throw new Error("Install MetaMask to use VoteChain.");
+    }
+
+    await window.ethereum.request({
+      method: "eth_requestAccounts"
+    });
+
+    await ensureSepolia();
+
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+
+    if (
+      !ethers.isAddress(CONTRACT_ADDRESS) ||
+      CONTRACT_ADDRESS === "PASTE_YOUR_CONTRACT_ADDRESS"
+    ) {
+      throw new Error("Add your deployed contract address in index.html.");
+    }
+
+    contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      ABI,
+      signer
+    );
+
+    $("connectBtn").textContent =
+      account.slice(0, 6) + "..." + account.slice(-4);
+
+    setStatus("Wallet connected. Retrieving on-chain election data...", "");
+
+    await loadData();
+
+  } catch (error) {
+    setStatus(error.shortMessage || error.message, "error");
+  }
+}
+
+async function loadData() {
+  try {
+    if (!contract || !account) return;
+
+    $("refreshBtn").disabled = true;
+
+    const [
+      total,
+      count,
+      alreadyVoted,
+      results
+    ] = await Promise.all([
+      contract.totalVotes(),
+      contract.getCandidateCount(),
+      contract.getVotingStatus(account),
+      contract.getResults()
+    ]);
+
+    voted = alreadyVoted;
+
+    candidates = [];
+
+    for (let i = 0; i < Number(count); i++) {
+      const c = await contract.getCandidate(i);
+
+      candidates.push({
+        id: Number(c[0]),
+        name: c[1],
+        description: c[2],
+        votes: Number(results[i])
+      });
+    }
+
+    $("totalVotes").textContent = total.toString();
+    $("candidateCount").textContent = count.toString();
+
+    $("myStatus").textContent =
+      voted ? "Voted ✓" : "Not voted";
+
+    renderCandidates();
+    renderResults();
+
+    setStatus(
+      voted
+        ? "✓ Your vote has been recorded on the blockchain."
+        : "✓ Wallet connected. You are eligible to vote.",
+      "success"
+    );
+
+  } catch (error) {
+    console.error(error);
+    setStatus("Could not retrieve election data: " + error.message, "error");
+  } finally {
+    $("refreshBtn").disabled = false;
+  }
+}
+
+function renderCandidates() {
+  const container = $("candidates");
+  const total = candidates.reduce((s,c) => s+c.votes, 0);
+
+  container.innerHTML = "";
+
+  candidates.forEach((c,i) => {
+    const percent = total === 0
+      ? 0
+      : (c.votes / total * 100);
+
+    const style = styles[i % styles.length];
+
+    const card = document.createElement("article");
+    card.className = "candidate";
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar " + style.avatar;
+    avatar.textContent = style.initials;
+
+    const name = document.createElement("h3");
+    name.textContent = c.name;
+
+    const desc = document.createElement("p");
+    desc.className = "desc";
+    desc.textContent = c.description;
+
+    const votes = document.createElement("div");
+    votes.className = "vote-count";
+    votes.textContent = c.votes;
+
+    const label = document.createElement("div");
+    label.className = "vote-label";
+    label.textContent = percent.toFixed(1) + "% OF TOTAL VOTES";
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    fill.style.width = percent + "%";
+    bar.appendChild(fill);
+
+    const button = document.createElement("button");
+    button.className = "vote-btn";
+
+    button.textContent = voted
+      ? "Already voted"
+      : "Vote for " + c.name.split(" ")[0];
+
+    button.disabled = voted || isVoting;
+
+    button.onclick = () => castVote(c.id);
+
+    card.append(
+      avatar, name, desc, votes, label, bar, button
+    );
+
+    container.appendChild(card);
+  });
+}
+
+function renderResults() {
+  const total = candidates.reduce((s,c) => s+c.votes, 0);
+
+  $("resultBars").innerHTML = "";
+
+  candidates.forEach((c,i) => {
+    const percent = total === 0
+      ? 0
+      : c.votes / total * 100;
+
+    const row = document.createElement("div");
+    row.className = "result-row";
+
+    const name = document.createElement("span");
+    name.textContent = c.name;
+
+    const value = document.createElement("strong");
+    value.textContent = percent.toFixed(1) + "%";
+
+    row.append(name,value);
+
+    const track = document.createElement("div");
+    track.className = "result-track";
+
+    const fill = document.createElement("div");
+    fill.className = "result-fill";
+    fill.style.width = percent + "%";
+
+    track.appendChild(fill);
+
+    $("resultBars").append(row,track);
+  });
+
+  if (total === 0) {
+    const note = document.createElement("p");
+    note.style.color = "#929bb2";
+    note.textContent = "No votes have been cast yet.";
+    $("resultBars").appendChild(note);
+  }
+}
+
+async function castVote(candidateId) {
+  if (!contract || !signer || voted || isVoting) return;
+
+  try {
+    isVoting = true;
+    renderCandidates();
+
+    setStatus("Please confirm your vote in MetaMask...");
+
+    const tx = await contract.vote(candidateId);
+
+    setStatus("Transaction submitted. Waiting for blockchain confirmation...");
+
+    await tx.wait();
+
+    voted = true;
+
+    setStatus("✓ Vote successfully recorded on Ethereum Sepolia!", "success");
+
+    await loadData();
+
+  } catch (error) {
+    setStatus(
+      error.shortMessage || error.reason || error.message,
+      "error"
+    );
+  } finally {
+    isVoting = false;
+    if (contract) renderCandidates();
+  }
+}
+
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", () => {
+    location.reload();
+  });
+
+  window.ethereum.on("chainChanged", () => {
+    location.reload();
+  });
+}
+</script>
+
+</body>
+</html>
